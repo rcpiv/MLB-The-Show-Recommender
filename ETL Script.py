@@ -65,20 +65,16 @@ for i in out:
     n += 1
     
 # Data Cleaning
-## Use Shohei Live Series as test since he has everything
-
-shohei = items_df[items_df['uuid'] == 'b4857835b5b69aef8e214f5e0094126a']
-
 ### Drop unneeded columns
 columns2drop = ['type','series_texture_name','is_sellable','has_augment',\
                 'augment_text','augment_end_date','has_matchup','stars',\
                     'trend','new_rank','has_rank_change','event','pitches','quirks']
-quirks_img = list(shohei.filter(regex='quirks_(.*)_img'))
-quirks_desc = list(shohei.filter(regex='quirks_(.*)_description'))
+quirks_img = list(items_df.filter(regex='quirks_(.*)_img'))
+quirks_desc = list(items_df.filter(regex='quirks_(.*)_description'))
 
 columns2drop = columns2drop + quirks_img + quirks_desc
 
-shohei = shohei.drop(columns2drop, axis = 1)
+items_df = items_df.drop(columns2drop, axis = 1)
 
 ### Convert height and weight to numeric
 def get_inches(h):
@@ -86,11 +82,29 @@ def get_inches(h):
     height = int(l[0])*12 + int(l[1][:-1])
     return height
 
-shohei['height'] = shohei['height'].apply(get_inches)
+items_df['height'] = items_df['height'].apply(get_inches)
+items_df['weight'] = items_df['weight'].str.split(' ').str[0].astype('int')
 
+### Hit and Field Rank
+def multi_split(s):
+    """
+    s = string
+    """
+    delimiters = "/",".","-"
+    regex_pattern = '|'.join(map(re.escape, delimiters))
+    l = re.split(regex_pattern, s)
+    try:
+        return l[-2].title()
+    except:
+        pass
 
+items_df['hit_rank'] = items_df['hit_rank_image'].apply(multi_split)
+items_df['field_rank'] = items_df['fielding_rank_image'].apply(multi_split)
 
+items_df = items_df.drop(['hit_rank_image','fielding_rank_image'], axis = 1)
 
-get_inches('6\'4"')
-
-
+# Push to SQL
+from sqlalchemy import create_engine
+conn_string = 'postgresql://localhost/personalprojects?user=rcpiv&password=reds97'
+engine = create_engine(conn_string)
+items_df.to_sql('card_stats',con=engine, if_exists = 'replace', schema = 'show22')
