@@ -105,6 +105,9 @@ items_df = items_df.drop(['hit_rank_image','fielding_rank_image'], axis = 1)
 
 # Push to SQL
 from sqlalchemy import create_engine
-conn_string = 'postgresql://localhost/personalprojects?user=rcpiv&password=reds97'
+info = open(r"C:\Users\rcpat\Desktop\Personal Projects\Show22\psql_creds.txt",'r').read()
+user = info.split(',')[0]
+pw = info.split(',')[1]
+conn_string = f"postgresql://localhost/personalprojects?user={user}&password={pw}"
 engine = create_engine(conn_string)
 items_df.to_sql('card_stats',con=engine, if_exists = 'replace', schema = 'show22')
